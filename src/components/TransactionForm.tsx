@@ -5,6 +5,8 @@ import { ACCOUNT_TYPES } from '../lib/types'
 import { parseAmount, toLocalInput } from '../lib/money'
 import { deleteTransaction, saveTransaction } from '../lib/api'
 import { findRule } from '../lib/rules'
+import { matchAccount, parseText } from '../lib/parser'
+import { formatTWD } from '../lib/money'
 
 interface Props {
   categories: Category[]
@@ -29,11 +31,47 @@ export default function TransactionForm({ categories, accounts, rules, editing, 
   // 使用者自己點過的欄位，規則就不再覆蓋
   const [touched, setTouched] = useState({ category: !!editing?.category_id, account: !!editing?.account_id, note: !!editing?.note && !systemHint })
   const [ruleHint, setRuleHint] = useState<string | null>(null)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasted, setPasted] = useState('')
+  const [rawText, setRawText] = useState<string | null>(null)
+  const [pasteResult, setPasteResult] = useState<string | null>(null)
   const activeAccounts = accounts.filter((a) => !a.archived || a.id === accountId)
 
-  function onMerchantChange(value: string) {
+  /** 貼上通知或簡訊文字 → 讀出金額、商家、時間、付款帳戶，並套用規則 */
+  function recognize(text: string) {
+    const t = text.trim()
+    if (!t) return setPasteResult('請先貼上文字')
+    const p = parseText(t, 'ocr')
+    setRawText(t.slice(0, 4000))
+    if (p.amount == null) return setPasteResult('⚠️ 讀不到金額，請手動輸入')
+    if (p.currency !== 'TWD') {
+      setPasteResult(`⚠️ 這是外幣 ${p.currency} ${p.amount}，請填入台幣金額`)
+    } else {
+      setAmount(String(p.amount))
+    }
+    if (p.merchant) onMerchantChange(p.merchant, t)
+    if (p.occurredAt) setWhen(toLocalInput(p.occurredAt))
+    const acc = matchAccount(t, accounts)
+    if (acc && !touched.account) setAccountId(acc)
+    if (p.currency === 'TWD') {
+      setPasteResult(`✅ 已辨識：${formatTWD(p.amount)}${p.merchant ? `・${p.merchant}` : ''}${p.occurredAt ? `・${new Date(p.occurredAt).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}，請確認後儲存`)
+    }
+    setPasteOpen(false)
+  }
+
+  async function pasteFromClipboard() {
+    try {
+      const t = await navigator.clipboard.readText()
+      setPasted(t)
+      recognize(t)
+    } catch {
+      setPasteResult('無法讀取剪貼簿，請在下方欄位長按「貼上」')
+    }
+  }
+
+  function onMerchantChange(value: string, context?: string) {
     setMerchant(value)
-    const r = findRule(rules, value)
+    const r = findRule(rules, value, context)
     if (!r) { setRuleHint(null); return }
     const cat = categories.find((c) => c.id === r.category_id)
     if (!touched.category) setCategoryId(r.category_id)
@@ -57,6 +95,7 @@ export default function TransactionForm({ categories, accounts, rules, editing, 
         merchant: merchant.trim() || null,
         note: note.trim() || null,
         occurred_at: new Date(when).toISOString(),
+        ...(rawText && !editing ? { raw_text: rawText } : {}),
       }, editing?.id)
       onDone()
     } catch (err) {
@@ -86,6 +125,26 @@ export default function TransactionForm({ categories, accounts, rules, editing, 
           <button className="link strong" disabled={busy}>儲存</button>
         </div>
 
+        {!editing && (
+          <div className="paste-box">
+            {pasteOpen ? (
+              <>
+                <textarea rows={4} value={pasted} onChange={(e) => setPasted(e.target.value)} autoFocus
+                  placeholder="貼上通知、簡訊或 Email 的文字。iPhone 小技巧：在「照片」打開截圖，長按文字即可選取並拷貝" />
+                <div className="row">
+                  <button type="button" className="secondary fit grow" onClick={() => recognize(pasted)}>🔍 辨識</button>
+                  <button type="button" className="link" onClick={() => setPasteOpen(false)}>收起</button>
+                </div>
+              </>
+            ) : (
+              <div className="row">
+                <button type="button" className="secondary fit grow" onClick={pasteFromClipboard}>📋 從剪貼簿貼上並辨識</button>
+                <button type="button" className="link" onClick={() => setPasteOpen(true)}>手動貼上</button>
+              </div>
+            )}
+            {pasteResult && <p className="small hint" role="status">{pasteResult}</p>}
+          </div>
+        )}
         {systemHint && <p className="warn small">{systemHint}</p>}
         {editing?.raw_text && <p className="raw">原始內容：{editing.raw_text}</p>}
 

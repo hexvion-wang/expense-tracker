@@ -6,7 +6,7 @@ export interface Category {
   sort_order: number
 }
 
-export type Source = 'manual' | 'applepay' | 'sms' | 'ocr'
+export type Source = 'manual' | 'applepay' | 'sms' | 'ocr' | 'email'
 
 export interface Transaction {
   id: string
@@ -22,7 +22,7 @@ export interface Transaction {
   account_id: string | null
 }
 
-export type TransactionInput = Pick<Transaction, 'amount' | 'merchant' | 'note' | 'category_id' | 'occurred_at' | 'account_id'>
+export type TransactionInput = Pick<Transaction, 'amount' | 'merchant' | 'note' | 'category_id' | 'occurred_at' | 'account_id'> & { raw_text?: string | null }
 
 export type AccountType = 'bank' | 'credit_card' | 'e_wallet' | 'cash' | 'other'
 

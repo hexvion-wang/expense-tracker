@@ -41,10 +41,10 @@ export function parseAmount(text: string): { amount: number; currency: string } 
   return null
 }
 
-const STOP = '(?=\\s*(?:[，,。；;|｜\\n]|$|消費|刷卡|交易|金額|付款|NT\\$|新[臺台]幣|TWD|\\$|已|，))'
+const STOP = '(?=\\s*(?:[，,。；;|｜:：\\n]|$|消費|刷卡|交易|金額|付款|回饋|NT\\$|新[臺台]幣|TWD|\\$|已|，))'
 const MERCHANT_PATTERNS = [
   // 標籤前面不能緊接中文字（避免把「便利商店」的「商店」當成標籤），後面要有冒號或空白
-  new RegExp(`(?<![\\u4e00-\\u9fff])(?:商店名稱|特店名稱|店家名稱|交易商店|消費商店|消費地點|收款方|商家|商店|特店|店家|店名)(?:\\s*[:：]\\s*|\\s+)([^\\n，,。；;|｜]+?)${STOP}`),
+  new RegExp(`(?<![\\u4e00-\\u9fff])(?:商店\\s*名稱|特店\\s*名稱|店家\\s*名稱|交易\\s*商店|消費\\s*商店|消費\\s*地點|收款方|商家|商店|特店|店家|店名)(?:\\s*[:：]\\s*|\\s+)([^\\n，,。；;|｜]+?)${STOP}`),
   /在\s*([^\n，,。；;\d][^\n，,。；;]*?)\s*(?:消費|刷卡|交易|使用)/,
   /於\s*([^\n，,。；;\d/][^\n，,。；;]*?)\s*(?:消費|刷卡)/,
   /向\s*([^\n，,。；;]+?)\s*(?:付款|支付)/,
@@ -61,7 +61,7 @@ const OCR_SKIP = /付款完成|付款成功|交易成功|支付成功|完成|金
 
 export function parseMerchant(text: string, source?: string): string | null {
   for (const re of MERCHANT_PATTERNS) {
-    const m = cleanMerchant(text.match(re)?.[1])
+    const m = cleanMerchant(text.match(re)?.[1] ?? text.replace(/\n/g, ' ').match(re)?.[1])
     if (m) return m
   }
   if (source === 'ocr') {
@@ -74,6 +74,15 @@ export function parseMerchant(text: string, source?: string): string | null {
 
 /** 讀出交易時間；now 是收到通知的時間。只接受過去 90 天內（避免把其他日期誤認） */
 export function parseDate(text: string, now = new Date()): string | null {
+  // 通知常見的「昨天 晚上 11:01」「今天 下午 2:05」
+  const rel = text.match(/(今天|昨天)\s*(上午|早上|凌晨|中午|下午|晚上)?\s*(\d{1,2})[:：](\d{2})/)
+  if (rel) {
+    let h = +rel[3]
+    if (['下午', '晚上'].includes(rel[2]) && h < 12) h += 12
+    if (['凌晨', '上午', '早上'].includes(rel[2]) && h === 12) h = 0
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (rel[1] === '昨天' ? 1 : 0), h, +rel[4])
+    return d.getTime() <= now.getTime() + 60_000 ? d.toISOString() : null
+  }
   const full = text.match(/(20\d{2})[/.-](\d{1,2})[/.-](\d{1,2})\s*(?:(\d{1,2}):(\d{2}))?/)
   const short = full ? null : text.match(/(?<![\d/])(\d{1,2})\/(\d{1,2})(?![\d/])\s*(?:(\d{1,2}):(\d{2}))?/)
   let d: Date | null = null

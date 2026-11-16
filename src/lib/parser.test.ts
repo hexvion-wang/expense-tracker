@@ -29,6 +29,11 @@ const samples: [string, string | undefined, { amount: number | null; currency: s
     { amount: 75, currency: 'TWD', merchant: '八方雲集' }],
   ['您已向 路易莎咖啡 付款 NT$ 95', 'ocr',
     { amount: 95, currency: 'TWD', merchant: '路易莎咖啡' }],
+  // LINE 錢包通知（一行版，以及截圖辨識時被自動換行切開的版本）
+  ['LINE Pay 付款 NT$ 630 付款完成。 商店名稱: CLAUDE.AI : 回饋: 富邦J卡一般消費回饋: 1%【日韓泰一般消費享3%回饋無上限】', 'ocr',
+    { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
+  ['LINE錢包\n昨天 晚上 11:01\nLINE Pay 付款 NT$ 630 付款完成。 商店\n名稱: CLAUDE.AI : 回饋: 富邦 J 卡一般消費\n回饋: 1%【日韓泰一般消費享 3% 回饋無上\n限，國內/國外其他地區一般消費享 1% 回...', 'ocr',
+    { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
   ['【帳戶通知】您的網路銀行於11/16 10:00登入成功', 'sms',
     { amount: null, currency: null, merchant: null }],
 ]
@@ -56,6 +61,13 @@ describe('parseDate', () => {
   it('當天只有日期沒有時間時，改用收到的時間', () => {
     expect(parseDate('您的信用卡於 11/16 消費', now)).toBeNull()
     expect(new Date(parseDate('您的信用卡於 11/14 消費', now)!).getDate()).toBe(14)
+  })
+  it('讀懂通知的「昨天 晚上 11:01」', () => {
+    const d = new Date(parseDate('LINE錢包 昨天 晚上 11:01', now)!)
+    expect([d.getDate(), d.getHours(), d.getMinutes()]).toEqual([15, 23, 1])
+    const d2 = new Date(parseDate('今天 上午 9:05', now)!)
+    expect([d2.getDate(), d2.getHours()]).toEqual([16, 9])
+    expect(parseDate('今天 晚上 11:30', now)).toBeNull() // 未來時間不採用
   })
   it('跨年：1 月收到 12/31 的通知', () => {
     expect(new Date(parseDate('12/31 23:50', new Date(2027, 0, 1, 0, 5))!).getFullYear()).toBe(2026)

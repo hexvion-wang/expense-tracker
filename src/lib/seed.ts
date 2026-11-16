@@ -12,7 +12,15 @@ export const DEFAULT_CATEGORIES = [
   { name: '其他', icon: '📦' },
 ]
 
-export async function ensureDefaultCategories(client: SupabaseClient): Promise<void> {
+// 同一時間只跑一次，避免畫面重繪造成重複建立
+let inflight: Promise<void> | null = null
+
+export function ensureDefaultCategories(client: SupabaseClient): Promise<void> {
+  inflight ??= seed(client).finally(() => { inflight = null })
+  return inflight
+}
+
+async function seed(client: SupabaseClient): Promise<void> {
   const { count, error } = await client.from('categories').select('id', { count: 'exact', head: true })
   if (error) throw error
   if ((count ?? 0) > 0) return

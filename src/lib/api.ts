@@ -1,6 +1,8 @@
 import { supabase } from './supabase'
 import type { Account, Category, Rule, Transaction, TransactionInput } from './types'
 import { findRule } from './rules'
+import { matchAccount, parseText } from './parser'
+import { generateToken, sha256Hex } from './tokens'
 
 const db = () => supabase!
 
@@ -143,4 +145,83 @@ export async function fetchBackupData(): Promise<Record<string, unknown[]>> {
 export async function listAllTransactions(): Promise<Transaction[]> {
   return ((await fetchAll('transactions', TX_COLUMNS)) as unknown as Transaction[])
     .map((t) => ({ ...t, amount: t.amount == null ? null : Number(t.amount) }))
+}
+
+// ---------- 自動記帳：處理捷徑送進來的待確認紀錄 ----------
+export interface ProcessResult { confirmed: number; duplicates: number; failed: number }
+
+const DUP_WINDOW_MS = 15 * 60_000
+
+/** 解讀「還沒有金額」的自動紀錄：讀金額與商家 → 套用規則 → 對應帳戶 → 檢查重複 */
+export async function processPending(rules: Rule[], accounts: Account[], categories: Category[]): Promise<ProcessResult> {
+  const { data, error } = await db().from('transactions').select(TX_COLUMNS)
+    .eq('status', 'pending').is('amount', null).neq('source', 'manual').limit(200)
+  if (error) throw error
+  const result: ProcessResult = { confirmed: 0, duplicates: 0, failed: 0 }
+  const fallback = categories.find((c) => c.name === '其他')?.id ?? null
+
+  for (const t of (data ?? []) as Transaction[]) {
+    const text = t.raw_text ?? ''
+    // 以「收到的時間」為基準解讀日期（而不是打開 App 的時間）
+    const p = parseText(text, t.source, new Date(t.occurred_at))
+    if (p.amount == null) { result.failed++; continue }
+    if (p.currency !== 'TWD') {
+      // 外幣：先記下商家與原幣金額，台幣金額等帳單出來再手動填
+      if (!t.note) {
+        await db().from('transactions').update({ merchant: p.merchant, note: `外幣 ${p.currency} ${p.amount}，請填入台幣金額` }).eq('id', t.id)
+      }
+      result.failed++
+      continue
+    }
+    const rule = findRule(rules, p.merchant, text)
+    const occurredAt = p.occurredAt ?? t.occurred_at
+    const patch = {
+      amount: p.amount,
+      merchant: p.merchant,
+      category_id: rule?.category_id ?? fallback,
+      account_id: rule?.account_id ?? matchAccount(text, accounts),
+      note: rule?.note_template ?? null,
+      occurred_at: occurredAt,
+      status: 'confirmed' as Transaction['status'],
+    }
+    // 重複檢查：15 分鐘內已有同金額的紀錄（例如 Apple Pay 和銀行簡訊各送一次）
+    const at = new Date(occurredAt).getTime()
+    const { data: dups, error: e2 } = await db().from('transactions').select('id')
+      .eq('amount', p.amount).eq('status', 'confirmed').neq('id', t.id)
+      .gte('occurred_at', new Date(at - DUP_WINDOW_MS).toISOString())
+      .lt('occurred_at', new Date(at + DUP_WINDOW_MS).toISOString()).limit(1)
+    if (e2) throw e2
+    if (dups && dups.length > 0) {
+      patch.status = 'pending'
+      patch.note = '⚠️ 可能與同時間的另一筆重複：確認不是重複就按儲存，重複的話請刪除'
+      result.duplicates++
+    } else {
+      result.confirmed++
+    }
+    const { error: e3 } = await db().from('transactions').update(patch).eq('id', t.id)
+    if (e3) throw e3
+  }
+  return result
+}
+
+// ---------- 捷徑 token ----------
+export interface IngestToken { id: string; label: string; created_at: string; last_used_at: string | null }
+
+export async function listTokens(): Promise<IngestToken[]> {
+  const { data, error } = await db().from('ingest_tokens').select('id, label, created_at, last_used_at').order('created_at')
+  if (error) throw error
+  return data ?? []
+}
+
+/** 產生新 token：回傳原始 token（只會顯示這一次），資料庫只存雜湊 */
+export async function createToken(label: string): Promise<string> {
+  const token = generateToken()
+  const { error } = await db().from('ingest_tokens').insert({ label, token_hash: await sha256Hex(token) })
+  if (error) throw error
+  return token
+}
+
+export async function revokeToken(id: string): Promise<void> {
+  const { error } = await db().from('ingest_tokens').delete().eq('id', id)
+  if (error) throw error
 }

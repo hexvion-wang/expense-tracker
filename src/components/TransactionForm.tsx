@@ -20,12 +20,14 @@ export default function TransactionForm({ categories, accounts, rules, editing, 
   const [categoryId, setCategoryId] = useState<string | null>(editing?.category_id ?? null)
   const [accountId, setAccountId] = useState<string | null>(editing?.account_id ?? null)
   const [merchant, setMerchant] = useState(editing?.merchant ?? '')
-  const [note, setNote] = useState(editing?.note ?? '')
+  // 系統提示（⚠️ 開頭）只顯示、不當成備註儲存
+  const systemHint = editing?.note?.startsWith('⚠️') ? editing.note : null
+  const [note, setNote] = useState(systemHint ? '' : editing?.note ?? '')
   const [when, setWhen] = useState(toLocalInput(editing?.occurred_at ?? new Date().toISOString()))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // 使用者自己點過的欄位，規則就不再覆蓋
-  const [touched, setTouched] = useState({ category: !!editing?.category_id, account: !!editing?.account_id, note: !!editing?.note })
+  const [touched, setTouched] = useState({ category: !!editing?.category_id, account: !!editing?.account_id, note: !!editing?.note && !systemHint })
   const [ruleHint, setRuleHint] = useState<string | null>(null)
   const activeAccounts = accounts.filter((a) => !a.archived || a.id === accountId)
 
@@ -84,6 +86,7 @@ export default function TransactionForm({ categories, accounts, rules, editing, 
           <button className="link strong" disabled={busy}>儲存</button>
         </div>
 
+        {systemHint && <p className="warn small">{systemHint}</p>}
         {editing?.raw_text && <p className="raw">原始內容：{editing.raw_text}</p>}
 
         <label className="field">

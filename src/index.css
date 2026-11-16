@@ -172,3 +172,13 @@ button.secondary {
 .lock .lock-icon { font-size: 56px; }
 .lock button.primary { max-width: 320px; margin-top: 16px; }
 .banner { display: block; width: 100%; text-align: left; border-top: 0; border-right: 0; border-bottom: 0; background: var(--card); border-left: 4px solid var(--warn); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+h3.sub { font-size: 15px; margin: 16px 0 6px; }
+.copy-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 8px; background: var(--bg); border-radius: 10px; padding: 6px 10px; margin: 6px 0; }
+.copy-row.secret { border: 1px solid var(--warn); }
+.copy-value { background: none; padding: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.token-box { border-radius: 12px; padding: 4px 0; }
+.token-item { padding: 10px 0; }
+.block { display: block; }
+.fit { width: auto; flex: none; text-align: center; margin-top: 4px; }
+.danger-text { color: var(--danger) !important; }
+.toast { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }

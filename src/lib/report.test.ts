@@ -8,7 +8,7 @@ const cats: Category[] = [
 ]
 let n = 0
 const tx = (amount: number | null, category_id: string | null, occurred_at = '2026-11-10T04:00:00Z', status: Transaction['status'] = 'confirmed'): Transaction =>
-  ({ id: String(n++), amount, currency: 'TWD', merchant: null, note: null, category_id, source: 'manual', status, raw_text: null, occurred_at })
+  ({ id: String(n++), amount, currency: 'TWD', merchant: null, note: null, category_id, source: 'manual', status, raw_text: null, occurred_at, account_id: null })
 
 describe('total', () => {
   it('不計入待確認或沒有金額的交易', () => {

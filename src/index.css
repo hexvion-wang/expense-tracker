@@ -147,3 +147,28 @@ button.link.strong { font-weight: 700; }
 .sheet-head h2 { margin: 0; }
 .sheet-head button:last-child { justify-self: end; }
 .sheet-head button:first-child { justify-self: start; }
+
+/* 資產 */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.section-head { margin: 18px 4px 0; }
+.section-head h2 { margin: 0; }
+.account-row { display: flex; align-items: center; }
+.account-row .tx { flex: 1; min-width: 0; }
+.adjust-btn { background: var(--bg); border: 0; border-radius: 8px; font-size: 13px; padding: 6px 10px; margin-right: 12px; color: var(--accent); }
+.tx-amount.neg { color: var(--danger); }
+.last4-field { width: 96px; }
+.note-box { background: var(--card); border-radius: 12px; padding: 12px; margin-top: 16px; }
+.hint { display: block; font-size: 13px; color: var(--accent); margin-top: 6px; }
+.check { display: flex; gap: 10px; align-items: center; margin: 8px 0 14px; font-size: 15px; }
+.check input { width: 22px; height: 22px; margin: 0; flex: none; }
+.tx.disabled { opacity: 0.5; }
+code { font-size: 13px; background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+.stack { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+button.secondary {
+  width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); text-align: left;
+}
+.lock { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.lock .lock-icon { font-size: 56px; }
+.lock button.primary { max-width: 320px; margin-top: 16px; }
+.banner { display: block; width: 100%; text-align: left; border-top: 0; border-right: 0; border-bottom: 0; background: var(--card); border-left: 4px solid var(--warn); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }

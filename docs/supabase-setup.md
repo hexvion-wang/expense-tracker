@@ -16,6 +16,13 @@ App 也有防呆：若誤把 secret key 設進去，建置後的網頁會直接�
 2. 把 `supabase/migrations/001_init.sql` 的內容整份貼上 → **Run**
 3. 看到 `Success. No rows returned` 就完成了
 
+### 之後新增的 migration
+每個新的 `supabase/migrations/00X_*.sql` 都要依序在 SQL Editor 執行一次（已執行過的不要重複執行）：
+| 檔案 | 內容 |
+|---|---|
+| `001_init.sql` | 分類、規則、交易 |
+| `002_accounts.sql` | 資產帳戶、餘額校正、規則與交易可指定帳戶 |
+
 ## 步驟 2：建立你的登入帳號
 Supabase 免費方案若沒有設定自訂 SMTP，無法修改登入信範本，所以 App 改用「Email + 密碼」登入，帳號直接在後台建立：
 1. **Authentication → Users → Add user → Create new user**
@@ -34,3 +41,11 @@ Supabase 免費方案若沒有設定自訂 SMTP，無法修改登入信範本，
 ## 步驟 4：關閉註冊（重要）
 帳號建立好後：**Authentication → Sign In / Providers → 關閉「Allow new users to sign up」→ Save**。
 App 沒有註冊畫面，但 anon key 是公開的，關閉註冊才能確保別人無法用 API 自己建立帳號。
+
+## 🔐 安全檢查清單
+- [ ] GitHub 帳號開啟兩步驟驗證（Settings → Password and authentication）
+- [ ] Supabase 帳號開啟兩步驟驗證（右上角頭像 → Account preferences → Multi-factor authentication）
+- [ ] Supabase 已關閉「Allow new users to sign up」
+- [ ] App 內開啟「App 鎖（Face ID）」
+- [ ] 每月做一次「完整備份」，檔案存在自己的 iCloud／檔案 App
+- [ ] 資產帳戶只存暱稱、末 4 碼與餘額，不存完整帳號、卡號、CVV 或密碼

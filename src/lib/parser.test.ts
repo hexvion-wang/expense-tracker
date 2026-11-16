@@ -34,6 +34,12 @@ const samples: [string, string | undefined, { amount: number | null; currency: s
     { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
   ['LINE錢包\n昨天 晚上 11:01\nLINE Pay 付款 NT$ 630 付款完成。 商店\n名稱: CLAUDE.AI : 回饋: 富邦 J 卡一般消費\n回饋: 1%【日韓泰一般消費享 3% 回饋無上\n限，國內/國外其他地區一般消費享 1% 回...', 'ocr',
     { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
+  // 富邦+ App 推播（截圖）
+  ['信用卡刷卡消費通知\n昨天 晚上 11:01\n【刷卡消費通知】您的信用卡末四碼0045於\n11/16 23:01:34CLAUDE.AI消費臺幣630元', 'ocr',
+    { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
+  // 富邦 Email 即時消費通知（純文字內容）
+  ['富邦信用卡即時消費通知\n親愛的卡友，您好：\n感謝您使用富邦信用卡，依據您於本行網路銀行信用卡「服務申請」項目設定之卡片消費通知，以下為您最新的消費授權核准紀錄：\n・消費卡號末四碼： 0045 -\n・消費日期： 115 年 11 月 16 日\n・消費時間： 23:01:34\n・授權金額： NT$ 630 元\n・交易內容： CLAUDE.AI\n', 'email',
+    { amount: 630, currency: 'TWD', merchant: 'CLAUDE.AI' }],
   ['【帳戶通知】您的網路銀行於11/16 10:00登入成功', 'sms',
     { amount: null, currency: null, merchant: null }],
 ]
@@ -61,6 +67,10 @@ describe('parseDate', () => {
   it('當天只有日期沒有時間時，改用收到的時間', () => {
     expect(parseDate('您的信用卡於 11/16 消費', now)).toBeNull()
     expect(new Date(parseDate('您的信用卡於 11/14 消費', now)!).getDate()).toBe(14)
+  })
+  it('讀懂民國年與消費時間', () => {
+    const d = new Date(parseDate('消費日期： 115 年 11 月 15 日\n消費時間： 23:01:34', now)!)
+    expect([d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes()]).toEqual([2026, 11, 15, 23, 1])
   })
   it('讀懂通知的「昨天 晚上 11:01」', () => {
     const d = new Date(parseDate('LINE錢包 昨天 晚上 11:01', now)!)

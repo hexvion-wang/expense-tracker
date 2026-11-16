@@ -44,9 +44,11 @@ export function parseAmount(text: string): { amount: number; currency: string } 
 const STOP = '(?=\\s*(?:[，,。；;|｜:：\\n]|$|消費|刷卡|交易|金額|付款|回饋|NT\\$|新[臺台]幣|TWD|\\$|已|，))'
 const MERCHANT_PATTERNS = [
   // 標籤前面不能緊接中文字（避免把「便利商店」的「商店」當成標籤），後面要有冒號或空白
-  new RegExp(`(?<![\\u4e00-\\u9fff])(?:商店\\s*名稱|特店\\s*名稱|店家\\s*名稱|交易\\s*商店|消費\\s*商店|消費\\s*地點|收款方|商家|商店|特店|店家|店名)(?:\\s*[:：]\\s*|\\s+)([^\\n，,。；;|｜]+?)${STOP}`),
-  /在\s*([^\n，,。；;\d][^\n，,。；;]*?)\s*(?:消費|刷卡|交易|使用)/,
-  /於\s*([^\n，,。；;\d/][^\n，,。；;]*?)\s*(?:消費|刷卡)/,
+  new RegExp(`(?<![\\u4e00-\\u9fff])(?:商店\\s*名稱|特店\\s*名稱|店家\\s*名稱|交易\\s*商店|交易\\s*內容|消費\\s*商店|消費\\s*地點|收款方|商家|商店|特店|店家|店名)(?:\\s*[:：]\\s*|\\s+)([^\\n，,。；;|｜]+?)${STOP}`),
+  /在\s*([^\n，,。；;\d\s][^\n，,。；;]*?)\s*(?:消費|刷卡|交易|使用)/,
+  // 富邦推播：「於11/16 23:01:34CLAUDE.AI消費臺幣630元」，時間後面直接接商家
+  /\d{1,2}:\d{2}(?::\d{2})?[ \t]*([^\n，,。；;\d\s【】\[\]()（）][^\n，,。；;【】]*?)\s*(?:消費|刷卡)/,
+  /於\s*([^\n，,。；;\d/\s][^\n，,。；;]*?)\s*(?:消費|刷卡)/,
   /向\s*([^\n，,。；;]+?)\s*(?:付款|支付)/,
 ]
 
@@ -57,7 +59,7 @@ function cleanMerchant(s: string | undefined): string | null {
   return m
 }
 
-const OCR_SKIP = /付款完成|付款成功|交易成功|支付成功|完成|金額|NT\$|\$|元|付款方式|交易|日期|時間|訂單|明細|返回|點數|回饋|LINE Pay|街口|全支付|收據|^\d|^[A-Z]?\d|分享|關閉/i
+const OCR_SKIP = /通知|付款完成|付款成功|交易成功|支付成功|完成|金額|NT\$|\$|元|付款方式|交易|日期|時間|訂單|明細|返回|點數|回饋|LINE Pay|街口|全支付|收據|^\d|^[A-Z]?\d|分享|關閉/i
 
 export function parseMerchant(text: string, source?: string): string | null {
   for (const re of MERCHANT_PATTERNS) {
@@ -82,6 +84,15 @@ export function parseDate(text: string, now = new Date()): string | null {
     if (['凌晨', '上午', '早上'].includes(rel[2]) && h === 12) h = 0
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (rel[1] === '昨天' ? 1 : 0), h, +rel[4])
     return d.getTime() <= now.getTime() + 60_000 ? d.toISOString() : null
+  }
+  // 民國年（富邦 Email：「消費日期：115 年 11 月 16 日」「消費時間：23:01:34」）
+  const roc = text.match(/(1\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/)
+  if (roc) {
+    const t = text.match(/(?:時間|時刻)\s*[:：]?\s*(\d{1,2}):(\d{2})/)
+    const d = new Date(+roc[1] + 1911, +roc[2] - 1, +roc[3], t ? +t[1] : 12, t ? +t[2] : 0)
+    const diff = now.getTime() - d.getTime()
+    if (!t && d.toDateString() === now.toDateString()) return null
+    return diff > -86_400_000 && diff < 90 * 86_400_000 ? d.toISOString() : null
   }
   const full = text.match(/(20\d{2})[/.-](\d{1,2})[/.-](\d{1,2})\s*(?:(\d{1,2}):(\d{2}))?/)
   const short = full ? null : text.match(/(?<![\d/])(\d{1,2})\/(\d{1,2})(?![\d/])\s*(?:(\d{1,2}):(\d{2}))?/)

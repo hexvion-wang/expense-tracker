@@ -7,11 +7,9 @@ import { formatTWD, parseAmount } from '../lib/money'
 interface Props {
   categories: Category[]
   onChanged: () => void
-  onSignOut: () => void
-  email: string
 }
 
-export default function CategoriesPage({ categories, onChanged, onSignOut, email }: Props) {
+export default function CategoriesPage({ categories, onChanged }: Props) {
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
   return (
     <>
@@ -31,11 +29,6 @@ export default function CategoriesPage({ categories, onChanged, onSignOut, email
             </li>
           ))}
         </ul>
-      </section>
-      <section className="card">
-        <h2>帳號</h2>
-        <p className="muted small">已登入：{email}</p>
-        <button className="danger" onClick={onSignOut}>登出</button>
       </section>
       {editing && (
         <CategoryForm category={editing === 'new' ? null : editing} nextOrder={categories.length}

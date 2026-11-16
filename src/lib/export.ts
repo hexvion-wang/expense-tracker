@@ -2,7 +2,7 @@ import type { Account, Category, Transaction } from './types'
 import { ACCOUNT_TYPES } from './types'
 
 const STATUS = { confirmed: '已確認', pending: '待確認' } as const
-const SOURCE = { manual: '手動', applepay: 'Apple Pay', sms: '簡訊', ocr: '截圖' } as const
+const SOURCE = { manual: '手動', applepay: 'Apple Pay', sms: '簡訊', ocr: '截圖', email: 'Email' } as const
 
 /**
  * 轉成 CSV 儲存格。

@@ -12,15 +12,15 @@ export interface SupabaseConfig {
 }
 
 export function readConfig(env: Record<string, string | undefined>): SupabaseConfig | null {
-  const url = env.VITE_SUPABASE_URL?.trim()
   const key = env.VITE_SUPABASE_ANON_KEY?.trim()
+  // 只取 https://xxxx.supabase.co 這段；就算貼成 API 網址（例如結尾多了 /rest/v1/）也能用
+  const url = env.VITE_SUPABASE_URL?.trim().match(/^https:\/\/[a-z0-9-]+\.supabase\.co(?=\/|$)/)?.[0]
   if (!url || !key) return null
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url)) return null
   // 防呆：如果有人誤把 secret / service_role key 填進來，直接拒絕，避免它被發布到公開網站
   if (isSecretKey(key)) {
     throw new Error('偵測到 Supabase 的 secret / service_role key！這把金鑰絕不能放在網頁裡，請改用 anon / publishable key。')
   }
-  return { url: url.replace(/\/$/, ''), key }
+  return { url, key }
 }
 
 export function isSecretKey(key: string): boolean {

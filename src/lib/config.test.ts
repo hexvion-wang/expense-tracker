@@ -14,8 +14,14 @@ describe('readConfig', () => {
       .toEqual({ url: 'https://abc123.supabase.co', key: 'sb_publishable_xyz' })
   })
 
+  it('網址結尾多了 /rest/v1/ 也能用', () => {
+    expect(readConfig({ VITE_SUPABASE_URL: 'https://abc123.supabase.co/rest/v1/', VITE_SUPABASE_ANON_KEY: 'k' }))
+      .toEqual({ url: 'https://abc123.supabase.co', key: 'k' })
+  })
+
   it('拒絕不是 Supabase 的網址', () => {
     expect(readConfig({ VITE_SUPABASE_URL: 'http://evil.example.com', VITE_SUPABASE_ANON_KEY: 'k' })).toBeNull()
+    expect(readConfig({ VITE_SUPABASE_URL: 'https://abc.supabase.co.evil.com', VITE_SUPABASE_ANON_KEY: 'k' })).toBeNull()
   })
 
   it('誤填 secret key 時直接報錯', () => {

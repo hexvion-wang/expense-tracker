@@ -16,16 +16,13 @@ App 也有防呆：若誤把 secret key 設進去，建置後的網頁會直接�
 2. 把 `supabase/migrations/001_init.sql` 的內容整份貼上 → **Run**
 3. 看到 `Success. No rows returned` 就完成了
 
-## 步驟 2：讓登入信寄「驗證碼」
-iPhone 主畫面的 App 和 Safari 是分開的，所以我們用「輸入驗證碼」登入，而不是點信中的連結。
-1. **Authentication → Emails（Email Templates）**
-2. 分別打開 **Magic Link** 和 **Confirm signup** 兩個範本，把內容換成：
-   ```html
-   <h2>記帳 App 登入驗證碼</h2>
-   <p>你的驗證碼是：<strong>{{ .Token }}</strong></p>
-   <p>如果不是你本人操作，請忽略這封信。</p>
-   ```
-3. 儲存。
+## 步驟 2：建立你的登入帳號
+Supabase 免費方案若沒有設定自訂 SMTP，無法修改登入信範本，所以 App 改用「Email + 密碼」登入，帳號直接在後台建立：
+1. **Authentication → Users → Add user → Create new user**
+2. 填入 Email 與一組**強密碼**（建議讓 iPhone「密碼」App 產生並儲存），勾選 **Auto Confirm User**
+3. **Create user**
+
+🔐 這組密碼只有你自己知道，不要貼到對話、GitHub 或任何地方。
 
 ## 步驟 3：把連線設定放進 GitHub
 1. Supabase：**Project Settings → API**（或 **Data API / API Keys**），找到 **Project URL** 和 **anon public**（或 **publishable**）金鑰。
@@ -34,7 +31,6 @@ iPhone 主畫面的 App 和 Safari 是分開的，所以我們用「輸入驗證
    - `VITE_SUPABASE_ANON_KEY` = anon / publishable 金鑰
 3. 到 **Actions** 分頁 → **Deploy to GitHub Pages** → **Run workflow**，重新部署。
 
-## 步驟 4：登入後關閉註冊（重要）
-這是個人 App，第一次用自己的 Email 登入成功後：
-**Authentication → Sign In / Providers（或 Settings）→ 關閉「Allow new users to sign up」**。
-這樣即使別人知道網址，也無法註冊帳號。
+## 步驟 4：關閉註冊（重要）
+帳號建立好後：**Authentication → Sign In / Providers → 關閉「Allow new users to sign up」→ Save**。
+App 沒有註冊畫面，但 anon key 是公開的，關閉註冊才能確保別人無法用 API 自己建立帳號。

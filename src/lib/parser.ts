@@ -99,6 +99,9 @@ export function parseDate(text: string, now = new Date()): string | null {
   const full = text.match(/(20\d{2})[/.-](\d{1,2})[/.-](\d{1,2})\s*(?:(\d{1,2}):(\d{2}))?/)
   const short = full ? null : text.match(/(?<![\d/])(\d{1,2})\/(\d{1,2})(?![\d/])\s*(?:(\d{1,2}):(\d{2}))?/)
   let d: Date | null = null
+  // 日期和時間分在兩個欄位時（例如「授權日期：2026/11/15」「授權時間：18:27」）
+  const labeledTime = text.match(/(?:時間|時刻)\s*[:：]?\s*(\d{1,2}):(\d{2})/)
+  if (full && !full[4] && labeledTime) { full[4] = labeledTime[1]; full[5] = labeledTime[2] }
   if (full) d = new Date(+full[1], +full[2] - 1, +full[3], full[4] ? +full[4] : 12, full[5] ? +full[5] : 0)
   else if (short) {
     d = new Date(now.getFullYear(), +short[1] - 1, +short[2], short[3] ? +short[3] : 12, short[4] ? +short[4] : 0)
@@ -112,9 +115,37 @@ export function parseDate(text: string, now = new Date()): string | null {
   return diff > -86_400_000 && diff < 90 * 86_400_000 ? d.toISOString() : null
 }
 
+const TABLE_LABEL = /金額|日期|時間|商店|名稱|類別|地區|卡別|卡號|備註|特店|店家|商家|交易/
+
+/**
+ * Email 常用表格排版：一列標題、下一列數值（用 Tab 分隔）。
+ * 轉成「標題：數值」，放在最前面，讓後續規則優先使用。
+ */
+export function expandTables(text: string): string {
+  const lines = text.split('\n')
+  const pairs: string[] = []
+  for (let i = 0; i + 1 < lines.length; i++) {
+    if (!lines[i].includes('\t') || !lines[i + 1].includes('\t')) continue
+    const head = lines[i].split('\t').map((c) => c.trim())
+    const vals = lines[i + 1].split('\t').map((c) => c.trim())
+    if (head.length !== vals.length) continue
+    const labels = head.filter(Boolean)
+    if (!labels.length || !labels.every((h) => h.length <= 12 && !/[$/：:]/.test(h)) || !labels.some((h) => TABLE_LABEL.test(h))) continue
+    head.forEach((h, j) => { if (h && vals[j]) pairs.push(`${h}：${vals[j]}`) })
+    i++ // 數值列已使用
+  }
+  return pairs.length ? pairs.join('\n') + '\n' + text : text
+}
+
+/** 銀行信件自帶的消費類別，例如國泰的「消費類別：餐飲」 */
+export function parseBankCategory(text: string): string | null {
+  return expandTables(text).match(/(?:消費|交易)類別\s*[:：]\s*([^\n\t：:]{1,10})/)?.[1].trim() || null
+}
+
 export function parseText(text: string, source?: string, now = new Date()): Parsed {
-  const a = parseAmount(text)
-  return { amount: a?.amount ?? null, currency: a?.currency ?? null, merchant: parseMerchant(text, source), occurredAt: parseDate(text, now) }
+  const t = expandTables(text)
+  const a = parseAmount(t)
+  return { amount: a?.amount ?? null, currency: a?.currency ?? null, merchant: parseMerchant(t, source), occurredAt: parseDate(t, now) }
 }
 
 /** 從文字找出付款帳戶：「末四碼 1234」這類寫法，或文字中出現帳戶名稱 */

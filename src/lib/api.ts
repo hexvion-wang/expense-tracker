@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type { Account, Category, Rule, Transaction, TransactionInput } from './types'
 import { findRule } from './rules'
-import { matchAccount, parseText } from './parser'
+import { matchAccount, parseBankCategory, parseText } from './parser'
 import { generateToken, sha256Hex } from './tokens'
 
 const db = () => supabase!
@@ -178,7 +178,8 @@ export async function processPending(rules: Rule[], accounts: Account[], categor
     const patch = {
       amount: p.amount,
       merchant: p.merchant,
-      category_id: rule?.category_id ?? fallback,
+      // 優先順序：你的規則 → 銀行信件的消費類別（名稱和你的分類相同時）→「其他」
+      category_id: rule?.category_id ?? categories.find((c) => c.name === parseBankCategory(text))?.id ?? fallback,
       account_id: rule?.account_id ?? matchAccount(text, accounts),
       note: rule?.note_template ?? null,
       occurred_at: occurredAt,

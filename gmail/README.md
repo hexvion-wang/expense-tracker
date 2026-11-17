@@ -47,7 +47,7 @@ Gmail 用專屬的 token，以後可以單獨撤銷，不會影響捷徑。
 
 | 屬性 | 值 |
 |---|---|
-| `INGEST_URL` | App 裡的「網址」（`https://…supabase.co/rest/v1/rpc/ingest`） |
+| `INGEST_URL` | App 裡的「網址」（`https://…supabase.co/rest/v1/rpc/ingest`；只填 `https://…supabase.co` 也可以） |
 | `APIKEY` | App 裡的「apikey」（`sb_publishable_` 開頭） |
 | `TOKEN` | 步驟 2 的 token |
 

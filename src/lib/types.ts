@@ -6,7 +6,7 @@ export interface Category {
   sort_order: number
 }
 
-export type Source = 'manual' | 'applepay' | 'sms' | 'ocr' | 'email'
+export type Source = 'manual' | 'applepay' | 'sms' | 'ocr' | 'email' | 'quick'
 
 export interface Transaction {
   id: string

@@ -101,7 +101,14 @@ function listMessageIds_(q) {
 
 function getMessage_(id) {
   const msg = Gmail.Users.Messages.get('me', id, { format: 'full' })
-  return { time: Number(msg.internalDate), text: extractText_(msg.payload) }
+  let text = ''
+  try {
+    text = extractText_(msg.payload)
+  } catch (e) {
+    console.error('信件 ' + id + ' 內文無法解析：' + e.message)
+  }
+  // 解析失敗時仍送出一筆提示，讓 App 顯示「待確認」，不會默默漏記
+  return { time: Number(msg.internalDate), text: text || 'Gmail 消費通知信無法解析內文，請到 Gmail 查看這封信並手動填寫' }
 }
 
 /** 取出信件內文：優先用純文字版本，沒有的話把 HTML 轉成文字 */
@@ -114,7 +121,7 @@ function extractText_(payload) {
 
 function findPart_(part, mime) {
   if (!part) return null
-  if (part.mimeType === mime && part.body && part.body.data) return part.body.data
+  if (part.mimeType === mime && part.body && part.body.data) return part
   const parts = part.parts || []
   for (let i = 0; i < parts.length; i++) {
     const found = findPart_(parts[i], mime)
@@ -123,8 +130,35 @@ function findPart_(part, mime) {
   return null
 }
 
-function decode_(data) {
-  return Utilities.newBlob(Utilities.base64DecodeWebSafe(data)).getDataAsString('UTF-8')
+/** 取得信件段落宣告的字元編碼（台灣銀行常用 Big5） */
+function charsetOf_(part) {
+  const headers = part.headers || []
+  for (let i = 0; i < headers.length; i++) {
+    if (String(headers[i].name).toLowerCase() === 'content-type') {
+      const m = String(headers[i].value).match(/charset="?([\w-]+)"?/i)
+      if (m) return m[1]
+    }
+  }
+  return 'UTF-8'
+}
+
+/** 解碼內文：Apps Script 可能回傳位元組陣列，或是沒有補齊「=」的 base64url 字串 */
+function decode_(part) {
+  const data = part.body.data
+  let bytes
+  if (Array.isArray(data)) {
+    bytes = data
+  } else {
+    let b64 = String(data).replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/')
+    while (b64.length % 4) b64 += '='
+    bytes = Utilities.base64Decode(b64)
+  }
+  const charset = charsetOf_(part)
+  try {
+    return Utilities.newBlob(bytes).getDataAsString(charset)
+  } catch (e) {
+    return Utilities.newBlob(bytes).getDataAsString('UTF-8')
+  }
 }
 
 function htmlToText_(html) {

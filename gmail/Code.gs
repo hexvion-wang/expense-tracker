@@ -81,13 +81,18 @@ function stop() {
 
 function readConfig_() {
   const p = PropertiesService.getScriptProperties()
-  const cfg = { url: p.getProperty('INGEST_URL'), apikey: p.getProperty('APIKEY'), token: p.getProperty('TOKEN') }
-  if (!cfg.url || !cfg.apikey || !cfg.token) {
-    throw new Error('請先到「專案設定 → 指令碼屬性」新增 INGEST_URL、APIKEY、TOKEN 三個屬性')
+  const clean = function (v) { return v == null ? '' : String(v).replace(/[\s\u200b\u3000]/g, '') }
+  const cfg = { url: clean(p.getProperty('INGEST_URL')), apikey: clean(p.getProperty('APIKEY')), token: clean(p.getProperty('TOKEN')) }
+  const missing = ['INGEST_URL', 'APIKEY', 'TOKEN'].filter(function (k, i) { return ![cfg.url, cfg.apikey, cfg.token][i] })
+  if (missing.length) {
+    throw new Error('指令碼屬性缺少：' + missing.join('、') + '（名稱要全大寫、一字不差）')
   }
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/rest\/v1\/rpc\/ingest$/.test(cfg.url)) {
-    throw new Error('INGEST_URL 格式不對，請從記帳 App「設定 → 捷徑自動記帳」複製網址')
+  // 只要是 https://xxxx.supabase.co 開頭就接受，自動補成完整的投遞網址
+  const base = cfg.url.match(/^https:\/\/[a-z0-9-]+\.supabase\.co(?=\/|$)/i)
+  if (!base) {
+    throw new Error('INGEST_URL 格式不對：應該是 https://（專案代碼）.supabase.co 開頭。目前開頭是「' + cfg.url.slice(0, 12) + '…」')
   }
+  cfg.url = base[0].toLowerCase() + '/rest/v1/rpc/ingest'
   if (/^sb_secret_/.test(cfg.apikey)) {
     throw new Error('APIKEY 填成 secret key 了！請改用 sb_publishable_ 開頭的公開金鑰，並到 Supabase 重新產生 secret key')
   }

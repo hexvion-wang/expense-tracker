@@ -89,6 +89,9 @@ function readConfig_() {
   }
   // 只要是 https://xxxx.supabase.co 開頭就接受，自動補成完整的投遞網址
   const base = cfg.url.match(/^https:\/\/[a-z0-9-]+\.supabase\.co(?=\/|$)/i)
+  if (!base && /…|\.\.\./.test(cfg.url)) {
+    throw new Error('INGEST_URL 填到教學裡的範例文字了（裡面有「…」）。請到記帳 App「設定 → 捷徑自動記帳」的「網址」那一列按「複製」，再貼過來')
+  }
   if (!base) {
     throw new Error('INGEST_URL 格式不對：應該是 https://（專案代碼）.supabase.co 開頭。目前開頭是「' + cfg.url.slice(0, 12) + '…」')
   }

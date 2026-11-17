@@ -11,7 +11,7 @@
 
 // ====== 要抓哪些信：可以自行增加其他銀行（用 OR 連接） ======
 // 範例：'(from:taipeifubon.com.tw "即時消費通知") OR (from:esunbank.com.tw "消費通知")'
-const QUERY = '(from:taipeifubon.com.tw "即時消費通知")'
+const QUERY = '(from:taipeifubon.com.tw "即時消費通知") OR (from:cathaybk.com.tw "消費彙整通知")'
 
 const MAX_PER_RUN = 20
 const PROP_LAST = 'LAST_PROCESSED_MS' // 已處理到哪個時間點（毫秒）
@@ -173,13 +173,20 @@ function htmlToText_(html) {
   return html
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/t[dh]>/gi, '\t') // 表格儲存格用 Tab 分隔（保留空白欄位，辨識器才能把標題對到數值）
     .replace(/<\/(p|div|li|tr|h\d|table)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/&#(\d+);/g, function (_, n) { return String.fromCharCode(Number(n)) })
 }
 
 function normalize_(text) {
-  return text.replace(/\r/g, '').replace(/[ \t　]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim()
+  return text
+    .replace(/\r/g, '')
+    .replace(/[ 　 ]+/g, ' ')
+    .replace(/ *\t */g, '\t')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n(\t*\n)+/g, '\n') // 移除只有 Tab 的空行
+    .trim()
 }

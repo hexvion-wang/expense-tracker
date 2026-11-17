@@ -24,6 +24,7 @@ App 也有防呆：若誤把 secret key 設進去，建置後的網頁會直接�
 | `002_accounts.sql` | 資產帳戶、餘額校正、規則與交易可指定帳戶 |
 | `003_ingest.sql` | 捷徑自動記帳的投遞函式 |
 | `004_email_source.sql` | 新增「Email」來源（Gmail 自動記帳） |
+| `005_quick_add.sql` | 動作按鈕快速記帳（選單與快速新增） |
 
 ## 步驟 2：建立你的登入帳號
 Supabase 免費方案若沒有設定自訂 SMTP，無法修改登入信範本，所以 App 改用「Email + 密碼」登入，帳號直接在後台建立：

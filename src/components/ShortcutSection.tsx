@@ -28,6 +28,8 @@ export default function ShortcutSection() {
   useEffect(() => { load() }, [])
   if (!config) return null
   const endpoint = `${config.url}/rest/v1/rpc/ingest`
+  const quickOptions = `${config.url}/rest/v1/rpc/quick_options`
+  const quickAdd = `${config.url}/rest/v1/rpc/quick_add`
 
   async function create() {
     setBusy(true); setError(null)
@@ -51,6 +53,9 @@ export default function ShortcutSection() {
       <h3 className="sub">① 捷徑要填的設定值（公開值）</h3>
       <CopyRow label="網址" value={endpoint} />
       <CopyRow label="apikey" value={config.key} />
+      <p className="muted small">動作按鈕「快速記帳」捷徑另外需要：</p>
+      <CopyRow label="選單" value={quickOptions} />
+      <CopyRow label="記帳" value={quickAdd} />
 
       <h3 className="sub">② 捷徑專用 token（秘密）</h3>
       {newToken ? (
@@ -83,7 +88,7 @@ export default function ShortcutSection() {
           ))}
         </ul>
       )}
-      <p className="muted small">懷疑 token 外洩（例如手機遺失、捷徑分享給別人）時，請立刻撤銷並產生新的。token 只能新增待確認紀錄，無法讀取你的任何資料。</p>
+      <p className="muted small">懷疑 token 外洩（例如手機遺失、捷徑分享給別人）時，請立刻撤銷並產生新的。token 只能新增紀錄，以及讀取分類和帳戶的「名稱」（給快速記帳選單用），讀不到任何金額、餘額或記帳紀錄。</p>
       {error && <p className="error" role="alert">{error}</p>}
     </section>
   )

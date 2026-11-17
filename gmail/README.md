@@ -23,8 +23,8 @@ Google 的伺服器每 5 分鐘檢查一次你的 Gmail，有新的銀行消費�
 在 Supabase 的 SQL Editor 執行 `supabase/migrations/004_email_source.sql`，新增「Email」來源。
 
 ## 步驟 2：產生專用 token
-記帳 App → **設定 → 捷徑自動記帳**：
-1. 名稱改成 `Gmail`，按 **產生 token**。
+記帳 App → **設定**，往下捲到 **捷徑自動記帳** 卡片的「② 捷徑專用 token」：
+1. 「用途名稱」欄位改成 `Gmail`，按 **🔑 產生新的 token**。
 2. 複製 token，**先不要關掉這個畫面**，步驟 5 會用到。
 
 Gmail 用專屬的 token，以後可以單獨撤銷，不會影響捷徑。

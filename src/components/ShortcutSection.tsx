@@ -61,10 +61,13 @@ export default function ShortcutSection() {
           <button className="secondary" onClick={() => setNewToken(null)}>我已經貼到捷徑了</button>
         </div>
       ) : (
-        <div className="row">
-          <input className="grow" value={label} maxLength={50} onChange={(e) => setLabel(e.target.value)} aria-label="token 名稱" />
-          <button className="secondary fit" disabled={busy} onClick={create}>產生 token</button>
-        </div>
+        <>
+          <label className="field">
+            <span className="label small">用途名稱（例如：iPhone 捷徑、Gmail）</span>
+            <input value={label} maxLength={50} onChange={(e) => setLabel(e.target.value)} placeholder="iPhone 捷徑" />
+          </label>
+          <button className="secondary center" disabled={busy} onClick={create}>🔑 產生新的 token</button>
+        </>
       )}
 
       {tokens.length > 0 && (

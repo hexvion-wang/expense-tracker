@@ -1,0 +1,33 @@
+# Supabase 免費方案：專案 7 天沒有活動會被自動暫停。
+# 這個排程每 2 天對資料庫發出一次輕量查詢，讓專案保持活躍。
+# 使用的是 repo Variables 裡的公開值（網址與 publishable key）；因為有 RLS，這個查詢讀不到任何資料。
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 3 */2 * *' # 每 2 天，台灣時間上午 11:17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          base=$(printf '%s' "$SUPABASE_URL" | grep -oE '^https://[a-z0-9-]+\.supabase\.co')
+          if [ -z "$base" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::缺少 VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$base/rest/v1/categories?select=id&limit=1" -H "apikey: $SUPABASE_KEY")
+          echo "HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase 回應 $code（專案可能已被暫停，請到 Supabase 後台恢復）"
+            exit 1
+          fi

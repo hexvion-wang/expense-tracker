@@ -83,6 +83,10 @@ Gmail 用專屬的 token，以後可以單獨撤銷，不會影響捷徑。
 | 撤銷 Google 權限 | https://myaccount.google.com/permissions → 「記帳 Gmail」→ 移除存取權 |
 | token 外洩 | 在 App 撤銷 Gmail token，產生新的，再更新指令碼屬性 `TOKEN` |
 
+## 防止 Supabase 專案被暫停
+Supabase 免費方案的專案**連續 7 天沒有活動會被自動暫停**。這個程式每 24 小時會對資料庫發出一次輕量查詢，讓專案保持活躍。查詢有 RLS 保護，讀不到任何資料。
+repo 裡的 GitHub Actions（`.github/workflows/keepalive.yml`）也會每 2 天做一次同樣的事，作為第二層保險。
+
 ## 分類小技巧
 國泰的信會附「消費類別」（例如：餐飲）。如果你的 App 裡有**同名的分類**，沒有規則符合時會自動歸到那個分類。
 

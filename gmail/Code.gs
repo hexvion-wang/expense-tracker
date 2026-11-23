@@ -15,6 +15,7 @@ const QUERY = '(from:taipeifubon.com.tw "即時消費通知") OR (from:cathaybk.
 
 const MAX_PER_RUN = 20
 const PROP_LAST = 'LAST_PROCESSED_MS' // 已處理到哪個時間點（毫秒）
+const PROP_PING = 'LAST_PING_MS' // 上次對 Supabase 打招呼的時間
 
 /** 第一次設定時執行一次：檢查設定、從「現在」開始處理新信件、建立每 5 分鐘的排程 */
 function setup() {
@@ -41,6 +42,7 @@ function dryRun() {
 /** 排程會自動執行這個函式 */
 function processEmails() {
   const cfg = readConfig_()
+  keepAlive_(cfg)
   const props = PropertiesService.getScriptProperties()
   const last = Number(props.getProperty(PROP_LAST) || Date.now())
   const afterSec = Math.floor(last / 1000) - 60 // Gmail 的 after: 以秒計，往前多抓 1 分鐘，再用毫秒精確比較
@@ -78,6 +80,30 @@ function stop() {
 }
 
 // ---------------- 以下為內部函式 ----------------
+
+/**
+ * Supabase 免費方案 7 天沒有活動會暫停專案。
+ * 每 24 小時發出一次輕量查詢保持活躍（有 RLS，讀不到任何資料）；失敗只記錄，不影響記帳。
+ */
+function keepAlive_(cfg) {
+  const props = PropertiesService.getScriptProperties()
+  const last = Number(props.getProperty(PROP_PING) || 0)
+  if (Date.now() - last < 24 * 3600 * 1000) return
+  const base = cfg.url.replace(/\/rest\/v1\/.*$/, '')
+  try {
+    const res = UrlFetchApp.fetch(base + '/rest/v1/categories?select=id&limit=1', {
+      method: 'get', headers: { apikey: cfg.apikey }, muteHttpExceptions: true,
+    })
+    const code = res.getResponseCode()
+    if (code === 200) {
+      props.setProperty(PROP_PING, String(Date.now()))
+    } else {
+      console.error('Supabase 保持活躍失敗（HTTP ' + code + '），專案可能已被暫停，請到 Supabase 後台恢復')
+    }
+  } catch (e) {
+    console.error('Supabase 保持活躍失敗：' + e.message)
+  }
+}
 
 function readConfig_() {
   const p = PropertiesService.getScriptProperties()
